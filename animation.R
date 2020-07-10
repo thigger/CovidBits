@@ -3,6 +3,7 @@ library(dplyr)
 library(runner)
 library(tidyr)
 LA_locations <- read_csv("C:/Documents/Work/202007 covid visualisation/Local_Authority_Districts__May_2020__Boundaries_UK_BGC.csv")
+#from: http://geoportal.statistics.gov.uk/datasets/
 #covid_nos <- read_csv("C:/Documents/Work/202007 covid visualisation/20200705 coronavirus-cases_latest.csv")
 covid_nos <- read_csv("https://coronavirus.data.gov.uk/downloads/csv/coronavirus-cases_latest.csv")
 
