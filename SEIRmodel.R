@@ -95,13 +95,18 @@ repeat{
     R=tab["R"]
   ))
   
-  if(day==200) {break}
+  if(day==1000) {break}
+  if(is.na(tab["E"]) && is.na(tab["I"])) {break}
   
   
   ## Adjust transmission probabilities here for distancing etc
   if(is.na(tab["I"])) {tab["I"]<-0}
-  if(tab["I"]>250) {prob<-0.002} ## social distancing/mitigations on
-  if(tab["I"]<100) {prob<-0.004} ## back to normal!
+  if(tab["I"]>250) {
+    if(prob>0.002) {print(paste0("mitigations on - day ",day))}
+    prob<-0.002} ## social distancing/mitigations on
+  if(tab["I"]<100) {
+    if(prob<0.004) {print(paste0("mitigations off - day ",day))}
+    prob<-0.004} ## back to normal!
   
 }
 
