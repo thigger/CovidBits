@@ -7,7 +7,7 @@ LA_locations <- read_csv("C:/Documents/Work/202007 covid visualisation/Local_Aut
 #covid_nos <- read_csv("C:/Documents/Work/202007 covid visualisation/20200705 coronavirus-cases_latest.csv")
 covid_nos <- read_csv("https://coronavirus.data.gov.uk/downloads/csv/coronavirus-cases_latest.csv")
 
-covid_nos <- filter(covid_nos,`Area type`=="Lower tier local authority")
+covid_nos <- filter(covid_nos,`Area type`=="ltla")
 covid_nos$date<-as.Date(covid_nos$`Specimen date`,"%d/%m/%Y")
 covid_nos<-complete(covid_nos,`Area code`,`date`)
 full<-merge(covid_nos,LA_locations,by.x="Area code",by.y="lad20cd")
@@ -20,9 +20,8 @@ test<-full %>%
   )
 test$sum7[is.na(test$sum7)]<-0
 
-dates<-unique(test$date)
 
-tmp<-filter(test,`lad20nm`=="Bradford" | `lad20nm`=="Leicester" | `lad20nm`=="York")
+tmp<-filter(test,`lad20nm`=="Bradford" | `lad20nm`=="Leicester" | `lad20nm`=="Leeds")
 
 maxdate<-max(tmp$date)
 tmp$alpha<-1.0
@@ -34,7 +33,7 @@ tmp1<-filter(tmp,date<maxdate-3)
 tmp2<-filter(tmp,date>=maxdate-4)
 
 library(ggplot2)
-ggplot(data=tmp1,aes(x=date,y=sum7,group=lad20nm)) + geom_line(aes(color=lad20nm),size=3)+ geom_line(data=tmp2,aes(color=lad20nm,alpha=alpha),size=3) + xlab("Date") + ylab("7-Day sum of cases") + scale_alpha(guide=FALSE) + scale_color_discrete(name="Location") + theme_classic(base_size=18)
+print(ggplot(data=tmp1,aes(x=date,y=sum7,group=lad20nm)) + geom_line(aes(color=lad20nm),size=3)+ geom_line(data=tmp2,aes(color=lad20nm,alpha=alpha),size=3) + xlab("Date") + ylab("7-Day sum of cases") + scale_alpha(guide=FALSE) + scale_color_discrete(name="Location") + theme_classic(base_size=18))
 
 library(ggmap)
 map<-get_stamenmap(zoom=7,maptype="terrain",bbox=c(left=min(full$long),bottom=min(full$lat),right=max(full$long),top=max(full$lat)),crop=FALSE)
@@ -44,6 +43,11 @@ library(animation)
 ani.options(interval = .25)
 #ani.options(ani.width = 800)
 #ani.options(ani.height = 1200)
+
+
+dates<-unique(test$date)
+
+dates<-seq.Date(max(test$date)-21,max(test$date)-2,1)
 
 saveGIF({
   for (intdate in dates) {
