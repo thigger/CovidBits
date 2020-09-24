@@ -53,7 +53,8 @@ result<-data.frame(
 
 cnum<-nrow(connections)
 
-prob<-0.004 #initial probability of transmission for each connection per day
+mittimes<-0
+prob<-0.006 #initial probability of transmission for each connection per day
 
 ## Loop
 repeat{
@@ -101,20 +102,36 @@ repeat{
   
   ## Adjust transmission probabilities here for distancing etc
   if(is.na(tab["I"])) {tab["I"]<-0}
-  if(tab["I"]>250) {
-    if(prob>0.002) {print(paste0("mitigations on - day ",day))}
-    prob<-0.002} ## social distancing/mitigations on
-  if(tab["I"]<100) {
-    if(prob<0.004) {print(paste0("mitigations off - day ",day))}
-    prob<-0.004} ## back to normal!
+  if(tab["I"]>200 & mittimes<99) {
+    if(prob>0.002) {print(paste0("mitigations on - day ",day))
+    prob<-0.002
+    mittimes<-mittimes+1}} ## social distancing/mitigations on
+  if(tab["I"]<40) {
+    if(prob<0.006) {print(paste0("mitigations off - day ",day))
+    prob<-0.006}} ## back to normal!
   
 }
+
+result$Reff<-result$E/result$I*7/4 #7 days infected vs 4 days exposed
+
+library(dplyr)
+library(runner)
+result<-result %>% 
+  mutate(
+    mean = mean_run(`Reff`,14,idx=day)
+  )
+result$mean[is.na(result$mean)]<-0
 
 library(ggplot2)
 print(ggplot(result)+
         geom_line(aes(x=day,y=R),colour="red",size=2) +
         geom_line(aes(x=day,y=I),size=2) +
+        geom_line(aes(x=day,y=mean*2000), colour="green",size=2) +
         ylab("Cases")+
         xlab("Day")+
+        scale_y_continuous(
+          name="Cases",
+          sec.axis = sec_axis(~./2000, name="Effective R")
+        ) +
         theme_classic(base_size=18)
 )
