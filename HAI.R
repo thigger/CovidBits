@@ -1,0 +1,97 @@
+library(readxl)
+library(tidyverse)
+library(runner)
+library(plotly)
+
+##Data from: https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-hospital-activity/
+
+cnames<-paste0("cases",read_excel("Copy of Weekly-covid-admissions-and-beds-publication-210107.xlsx",sheet="New hosp cases",n_max=0,skip=14) %>% names())
+new_hosp_cases_wide<-na.omit(read_excel("Copy of Weekly-covid-admissions-and-beds-publication-210107.xlsx",sheet="New hosp cases",skip=24,col_names=cnames))
+
+cnames<-paste0("ads",read_excel("Copy of Weekly-covid-admissions-and-beds-publication-210107.xlsx",sheet="Hosp ads from comm",n_max=0,skip=14) %>% names())
+hosp_comm_ads_wide<-na.omit(read_excel("Copy of Weekly-covid-admissions-and-beds-publication-210107.xlsx",sheet="Hosp ads from comm",skip=24,col_names=cnames))
+
+
+
+#t1<-new_hosp_cases_wide[new_hosp_cases_wide$casesCode=="RYR",]
+
+#t2<-hosp_comm_ads_wide[hosp_comm_ads_wide$adsCode=="RYR",]
+
+
+
+overall_wide<-na.omit(merge(new_hosp_cases_wide,hosp_comm_ads_wide,by.x="casesCode",by.y="adsCode"))
+
+
+#t3<-overall_wide[overall_wide$casesCode=="RYR",]
+
+cnames<-names(overall_wide)
+#overall_long<-reshape(overall_wide,direction="long",varying=c(grep("cases4",cnames),grep("ads4",cnames)),sep="",v.names=c("cases","ads"))
+#misbehaves and gets data on wrong date
+
+
+overall_long<-gather(overall_wide,variable,value,matches("\\d\\d",perl=TRUE)) %>% 
+  separate("variable",into=c("var","date"),sep=-5) %>% 
+  spread(var,value)
+
+overall_long$hai<-overall_long$cases-overall_long$ads
+
+overall_long$date<-strtoi(overall_long$date)
+
+
+#t4<-overall_long[overall_long$casesCode=="RYR",]
+
+
+sumDays<-30
+
+test<-overall_long %>% 
+  group_by(`casesCode`) %>% 
+  arrange(`date`) %>% 
+  mutate(
+    sumNads = sum_run(`ads`,sumDays,idx=date),
+    sumNcases = sum_run(`cases`,sumDays,idx=date),
+    sumNhai = sum_run(`hai`,sumDays,idx=date),
+  )
+test$sumNads[is.na(test$sumNads)]<-0
+test$sumNcases[is.na(test$sumNcases)]<-0
+test$sumNhai[is.na(test$sumNhai)]<-0
+
+
+#t5<-test[test$casesCode=="RYR",]
+
+
+test$propNhai<-test$sumNhai/test$sumNcases
+test$propNhai[is.nan(test$propNhai)]<-0
+acutes<-test[test$`casesType 1 Acute?`=="Yes",]
+acutes$date<-as.Date(acutes$date,origin="1899-12-30")
+
+
+
+ggplot(acutes,aes(x=date,y=fct_reorder(casesName,propNhai),fill=propNhai))+
+  geom_raster(show.legend=FALSE)+
+  theme_classic()+
+  scale_fill_distiller(palette="Spectral")+
+  scale_y_discrete(name="") +
+  scale_x_date(name="Date", expand=c(0,0))
+
+##this is messy!
+
+
+
+acutes_grp<-acutes %>% 
+  group_by(casesCode,casesName) %>% 
+  summarize(totHAI=sum(hai),totCases=sum(cases))
+
+acutes_grp$percHAI<-acutes_grp$totHAI/acutes_grp$totCases
+
+#remove smaller hospitals
+acutes_grp_lim<-acutes_grp[acutes_grp$totCases>300,]
+
+ggp<-ggplot(acutes_grp_lim,aes(y=fct_reorder(casesName,percHAI),x=percHAI,fill=percHAI))+
+  geom_col()+
+  scale_fill_distiller(palette="Spectral",guide=FALSE)+
+  xlab("Percentage hospital acquired")+
+  scale_x_continuous(labels=scales::percent) +
+  ylab("Trust")
+
+
+ggp %>% ggplotly(tooltip=c("y"))
