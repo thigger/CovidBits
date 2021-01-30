@@ -5,11 +5,13 @@ library(plotly)
 
 ##Data from: https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-hospital-activity/
 
-cnames<-paste0("cases",read_excel("Copy of Weekly-covid-admissions-and-beds-publication-210107.xlsx",sheet="New hosp cases",n_max=0,skip=14) %>% names())
-new_hosp_cases_wide<-na.omit(read_excel("Copy of Weekly-covid-admissions-and-beds-publication-210107.xlsx",sheet="New hosp cases",skip=24,col_names=cnames))
+filename<-"Weekly-covid-admissions-and-beds-publication-210128.xlsx"
 
-cnames<-paste0("ads",read_excel("Copy of Weekly-covid-admissions-and-beds-publication-210107.xlsx",sheet="Hosp ads from comm",n_max=0,skip=14) %>% names())
-hosp_comm_ads_wide<-na.omit(read_excel("Copy of Weekly-covid-admissions-and-beds-publication-210107.xlsx",sheet="Hosp ads from comm",skip=24,col_names=cnames))
+cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
+new_hosp_cases_wide<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
+
+cnames<-paste0("ads",read_excel(filename,sheet="Hosp ads from comm",n_max=0,skip=14) %>% names())
+hosp_comm_ads_wide<-na.omit(read_excel(filename,sheet="Hosp ads from comm",skip=24,col_names=cnames))
 
 
 
@@ -89,9 +91,11 @@ acutes_grp_lim<-acutes_grp[acutes_grp$totCases>300,]
 ggp<-ggplot(acutes_grp_lim,aes(y=fct_reorder(casesName,percHAI),x=percHAI,fill=percHAI))+
   geom_col()+
   scale_fill_distiller(palette="Spectral",guide=FALSE)+
-  xlab("Percentage hospital acquired")+
+  xlab("Percentage hospital acquired since August 2020")+
   scale_x_continuous(labels=scales::percent) +
-  ylab("Trust")
+  ylab("Trust (and total cases)") +
+  #geom_text(aes(label=totCases,x=0)) +
+  ggtitle("Hospital Acquired COVID-19")
 
 
-ggp %>% ggplotly(tooltip=c("y"))
+ggp %>% ggplotly(tooltip="y")
