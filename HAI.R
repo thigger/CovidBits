@@ -5,7 +5,7 @@ library(plotly)
 
 ##Data from: https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-hospital-activity/
 
-filename<-"Weekly-covid-admissions-and-beds-publication-210128.xlsx"
+filename<-"Weekly-covid-admissions-and-beds-publication-210204-1.xlsx"
 
 cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
 new_hosp_cases_wide<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
@@ -88,14 +88,17 @@ acutes_grp$percHAI<-acutes_grp$totHAI/acutes_grp$totCases
 #remove smaller hospitals
 acutes_grp_lim<-acutes_grp[acutes_grp$totCases>300,]
 
+lastdate<-max(acutes$date)
+
 ggp<-ggplot(acutes_grp_lim,aes(y=fct_reorder(casesName,percHAI),x=percHAI,fill=percHAI))+
   geom_col()+
   scale_fill_distiller(palette="Spectral",guide=FALSE)+
   xlab("Percentage hospital acquired since August 2020")+
-  scale_x_continuous(labels=scales::percent) +
+  scale_x_continuous(labels=scales::percent,expand=expansion(mult=c(0.00,0.02))) +
   ylab("Trust (and total cases)") +
-  #geom_text(aes(label=totCases,x=0)) +
-  ggtitle("Hospital Acquired COVID-19")
+  geom_text(aes(label=totCases),x=0.002,size=3,show.legend=FALSE,hjust=0) +
+  ggtitle(paste0("Hospital Acquired COVID-19 to ",lastdate)) +
+  theme(plot.title.position='plot',plot.title=element_text(hjust=0.5))
 
 
 ggp %>% ggplotly(tooltip="y")
@@ -128,6 +131,15 @@ test$`aeperfPercentage in 4 hours or less (all)`
 
 test$aeperfPerc4hr<-as.numeric(test$`aeperfPercentage in 4 hours or less (all)`)
 
+
+model1<-lm(percHAI ~ aeperfPerc4hr,data=test)
+summary(model1)
+
+pred_vars <- predict(model1, interval="prediction")
+
+test2<-test
+test<-cbind(na.omit(test2),pred_vars)
+
 ggplot(test,aes(x=`aeperfPerc4hr`,y=percHAI,colour=percHAI))+
   geom_point()+
   scale_color_gradient(low="blue",high="red",guide=FALSE)+
@@ -135,7 +147,10 @@ ggplot(test,aes(x=`aeperfPerc4hr`,y=percHAI,colour=percHAI))+
   scale_y_continuous(labels=scales::percent) +
   ylab("Percentage HAI") +
   #geom_text(aes(label=totCases,x=0)) +
-  ggtitle("Hospital Acquired COVID-19")
+  ggtitle("Hospital Acquired COVID-19") +
+  geom_smooth(method=lm,color="red",fill="grey",se=TRUE) +
+  geom_line(aes(y=lwr), color = "red", linetype = "dashed") +
+  geom_line(aes(y=upr), color = "red", linetype = "dashed")
 
 cor.test(test$percHAI,test$aeperfPerc4hr,use="complete.obs")
 
