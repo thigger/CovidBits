@@ -5,7 +5,7 @@ library(plotly)
 
 ##Data from: https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-hospital-activity/
 
-filename<-"Weekly-covid-admissions-and-beds-publication-210225.xlsx"
+filename<-"Weekly-covid-admissions-and-beds-publication-210304.xlsx"
 
 cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
 new_hosp_cases_wide<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
@@ -254,32 +254,32 @@ ggplot(acutes_28d_grp_lim,aes(y=fct_reorder(casesName,percHAI),x=percHAI,fill=pe
 library("CGPfunctions")
 source("newggrankslopegraph.R")
 
-#acutes_28d_panel<-acutes %>% group_by(casesCode,casesName,dr=cut(date,2,ordered_result=TRUE)) %>% summarize(totHAI=sum(hai),totCases=sum(cases))
-acutes_28d_panel<-acutes %>% group_by(casesCode,casesName,drB=(date<as.Date("2021-01-01"))) %>% summarize(totHAI=sum(hai),totCases=sum(cases))
+#acutes_panel<-acutes %>% group_by(casesCode,casesName,dr=cut(date,2,ordered_result=TRUE)) %>% summarize(totHAI=sum(hai),totCases=sum(cases))
+acutes_panel<-acutes %>% group_by(casesCode,casesName,drB=(date<as.Date("2021-01-01"))) %>% summarize(totHAI=sum(hai),totCases=sum(cases))
 
-acutes_28d_panel$dr<-factor(c('2021','2020')[acutes_28d_panel$drB+1],ordered=TRUE)
+acutes_panel$dr<-factor(c('2021','2020')[acutes_panel$drB+1],ordered=TRUE)
 
-acutes_28d_panel$percHAI<-acutes_28d_panel$totHAI/acutes_28d_panel$totCases
+acutes_panel$percHAI<-acutes_panel$totHAI/acutes_panel$totCases
 
 # remove trusts where cases in either period below 200
-acutes_28d_panel<-acutes_28d_panel %>% 
+acutes_panel<-acutes_panel %>% 
   group_by(casesCode) %>% 
   filter(min(totCases)>=200)
 
-acutes_28d_panel<-group_by(acutes_28d_panel,dr) %>% 
+acutes_panel<-group_by(acutes_panel,dr) %>% 
   mutate(rank=order(order(percHAI,decreasing=TRUE)))
 
-acutes_28d_panel$blank<-""
-acutes_28d_panel$shortName<-str_replace_all(acutes_28d_panel$casesName,"(NHS|HEALTHCARE|TRUST|FOUNDATION|HOSPITALS|HOSPITAL|TEACHING|[:space:]OF[:space:]|THE[:space:]|^[:space:]|[:space]$)","")
+acutes_panel$blank<-""
+acutes_panel$shortName<-str_replace_all(acutes_panel$casesName,"(NHS|HEALTHCARE|TRUST|FOUNDATION|HOSPITALS|HOSPITAL|TEACHING|[:space:]OF[:space:]|THE[:space:]|^[:space:]|[:space]$)","")
 
 
 
-acutes_28d_panel<-ungroup(acutes_28d_panel)
+acutes_panel<-ungroup(acutes_panel)
 
 
 pal<-colorRamp(c("darkred","gray","darkgreen"))
 
-custom_colors <- tidyr::pivot_wider(acutes_28d_panel, 
+custom_colors <- tidyr::pivot_wider(acutes_panel, 
                                    id_cols = shortName, 
                                    names_from = dr, 
                                    values_from = rank) %>% 
@@ -292,17 +292,17 @@ custom_colors <- tidyr::pivot_wider(acutes_28d_panel,
 #  ) %>%
   mutate(trend = rgb(pal(  (difference-min(difference))  / (max(difference)-min(difference)) ),maxColorValue=255)) %>% 
   #mutate(trend="gray") %>% 
-  select(shortName, trend) %>%
+  dplyr::select(shortName, trend) %>%
   tibble::deframe()
 
 
-test<-acutes_28d_panel %>% dplyr::filter(dr == min(dr))
+test<-acutes_panel %>% dplyr::filter(dr == min(dr))
 
-#acutes_28d_panel$drchar<-as.character(acutes_28d_panel$dr)
+#acutes_panel$drchar<-as.character(acutes_panel$dr)
 
 #ranks
 bigchart<-newggrankslopegraph(
-  acutes_28d_panel,
+  acutes_panel,
   dr,
   rank,
   shortName,
@@ -311,7 +311,7 @@ bigchart<-newggrankslopegraph(
   LineColor=custom_colors,
   LineThickness = 1.5,
   Title = "Ranked performance for Hospital-Acquired COVID-19 since August 2020",
-  SubTitle = "2020 figures vs 2021",
+  SubTitle = paste0("2020 figures vs 2021 - data to ",maxdate),
   Caption = "Top of chart = lowest %HAI",
   CaptionTextSize = 12
 )
@@ -320,7 +320,7 @@ print(bigchart)
 
 #%HAI
 bigchart<-newggrankslopegraph(
-  acutes_28d_panel,
+  acutes_panel,
   dr,
   percHAI,
   shortName,
@@ -338,9 +338,9 @@ print(bigchart)
 
 
 #logit %HAI - looks terrible!
-acutes_28d_panel$logitpercHAI<-log(acutes_28d_panel$percHAI/(1-acutes_28d_panel$percHAI))
+acutes_panel$logitpercHAI<-log(acutes_panel$percHAI/(1-acutes_panel$percHAI))
 bigchart<-newggrankslopegraph(
-  acutes_28d_panel,
+  acutes_panel,
   dr,
   logitpercHAI,
   shortName,
@@ -358,10 +358,10 @@ print(bigchart)
 
 
 ## Medians for DT
-median(acutes_28d_panel[acutes_28d_panel$dr=="2020",]$percHAI)
-median(acutes_28d_panel[acutes_28d_panel$dr=="2021",]$percHAI)
-mean(acutes_28d_panel[acutes_28d_panel$dr=="2020",]$percHAI)
-mean(acutes_28d_panel[acutes_28d_panel$dr=="2021",]$percHAI)
+median(acutes_panel[acutes_panel$dr=="2020",]$percHAI)
+median(acutes_panel[acutes_panel$dr=="2021",]$percHAI)
+mean(acutes_panel[acutes_panel$dr=="2020",]$percHAI)
+mean(acutes_panel[acutes_panel$dr=="2021",]$percHAI)
 
 #ggsave("bigplot.png",plot=bigchart,device=png(),width=6,height=12,units="in",dpi=300)
 
@@ -369,7 +369,7 @@ mean(acutes_28d_panel[acutes_28d_panel$dr=="2021",]$percHAI)
 # library("slopegraph")
 # 
 # ggslopegraph2(
-#   acutes_28d_panel,
+#   acutes_panel,
 #   dr,
 #   rank,
 #   casesName
@@ -404,3 +404,75 @@ meanPerc<-1
 fplot<-funnel_plot(numerator=acutes_grp_lim$totHAI,denominator=acutes_grp_lim$prds,group=acutes_grp_lim$casesName,title="Funnel plot of Hospital Acquired COVID-19", data_type="SR",limit=99,Poisson_limits = FALSE,sr_method="SHMI",OD_adjust = TRUE,label_outliers=TRUE,multiplier=meanPerc,y_label="Ratio to average HAI percentage",x_label="Expected HAI")
 print(fplot)
 
+
+
+
+## 28 day slopegraphs
+
+#acutes_28d_panel<-acutes %>% group_by(casesCode,casesName,dr=cut(date,2,ordered_result=TRUE)) %>% summarize(totHAI=sum(hai),totCases=sum(cases))
+
+maxdate<-max(acutes$date)
+mindate<-maxdate-56
+
+acutes_28d_panel<-acutes %>% filter(date>=maxdate-56) %>% group_by(casesCode,casesName,drB=(date>=(maxdate-28))) %>% summarize(totHAI=sum(hai),totCases=sum(cases))
+
+acutes_28d_panel$dr<-factor(c('Previous 28d','Most recent 28d')[acutes_28d_panel$drB+1],levels=c('Previous 28d','Most recent 28d'),ordered=TRUE)
+
+acutes_28d_panel$percHAI<-acutes_28d_panel$totHAI/acutes_28d_panel$totCases
+
+# remove trusts where cases in either period below 30
+acutes_28d_panel<-acutes_28d_panel %>% 
+  group_by(casesCode) %>% 
+  filter(min(totCases)>=40)
+
+acutes_28d_panel<-group_by(acutes_28d_panel,dr) %>% 
+  mutate(rank=order(order(percHAI,decreasing=TRUE)))
+
+acutes_28d_panel$blank<-""
+acutes_28d_panel$shortName<-str_replace_all(acutes_28d_panel$casesName,"(NHS|HEALTHCARE|TRUST|FOUNDATION|HOSPITALS|HOSPITAL|TEACHING|[:space:]OF[:space:]|THE[:space:]|^[:space:]|[:space]$)","")
+
+
+
+acutes_28d_panel<-ungroup(acutes_28d_panel)
+
+
+pal<-colorRamp(c("darkred","gray","darkgreen"))
+
+custom_colors <- tidyr::pivot_wider(acutes_28d_panel, 
+                                    id_cols = shortName, 
+                                    names_from = dr, 
+                                    values_from = rank) %>% 
+  mutate(difference = `Most recent 28d`-`Previous 28d`) %>%
+  #  mutate(trend = case_when(
+  #    difference >= 20 ~ "green",
+  #    difference <= -20 ~ "red",
+  #    TRUE ~ "gray"
+  # )
+  #  ) %>%
+  mutate(trend = rgb(pal(  (difference-min(difference))  / (max(difference)-min(difference)) ),maxColorValue=255)) %>% 
+  #mutate(trend="gray") %>% 
+  dplyr::select(shortName, trend) %>%
+  tibble::deframe()
+
+
+test<-acutes_28d_panel %>% dplyr::filter(dr == min(dr))
+
+#acutes_28d_panel$drchar<-as.character(acutes_28d_panel$dr)
+
+#ranks
+bigchart<-newggrankslopegraph(
+  acutes_28d_panel,
+  dr,
+  rank,
+  shortName,
+  Data.label=blank,
+  YTextSize = 3,
+  LineColor=custom_colors,
+  LineThickness = 1.5,
+  Title = "Ranked performance for Hospital-Acquired COVID-19",
+  SubTitle = paste0("Most recent 28d figures vs previous 28d - ",mindate," to ",maxdate),
+  Caption = "Top of chart = lowest %HAI",
+  CaptionTextSize = 12
+)
+
+print(bigchart)
