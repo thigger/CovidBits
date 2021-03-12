@@ -5,7 +5,7 @@ library(plotly)
 
 ##Data from: https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-hospital-activity/
 
-filename<-"Weekly-covid-admissions-and-beds-publication-210304.xlsx"
+filename<-"Weekly-covid-admissions-and-beds-publication-210311.xlsx"
 
 cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
 new_hosp_cases_wide<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
@@ -86,7 +86,7 @@ acutes_grp<-acutes %>%
 acutes_grp$percHAI<-acutes_grp$totHAI/acutes_grp$totCases
 
 #remove smaller hospitals
-acutes_grp_lim<-acutes_grp[acutes_grp$totCases>300,]
+acutes_grp_lim<-acutes_grp[acutes_grp$totCases>200,]
 
 lastdate<-max(acutes$date)
 
@@ -233,7 +233,7 @@ acutes_28d_grp<-acutes_28d %>%
 acutes_28d_grp$percHAI<-acutes_28d_grp$totHAI/acutes_28d_grp$totCases
 
 #remove smaller hospitals
-acutes_28d_grp_lim<-acutes_28d_grp[acutes_28d_grp$totCases>40,]
+acutes_28d_grp_lim<-acutes_28d_grp[acutes_28d_grp$totCases>20,]
 
 lastdate<-max(acutes_28d$date)
 firstdate<-min(acutes_28d$date)
@@ -264,7 +264,7 @@ acutes_panel$percHAI<-acutes_panel$totHAI/acutes_panel$totCases
 # remove trusts where cases in either period below 200
 acutes_panel<-acutes_panel %>% 
   group_by(casesCode) %>% 
-  filter(min(totCases)>=200)
+    filter(min(totCases)>=122) # picked to keep Birmingham W&C out!
 
 acutes_panel<-group_by(acutes_panel,dr) %>% 
   mutate(rank=order(order(percHAI,decreasing=TRUE)))
@@ -423,7 +423,7 @@ acutes_28d_panel$percHAI<-acutes_28d_panel$totHAI/acutes_28d_panel$totCases
 # remove trusts where cases in either period below 30
 acutes_28d_panel<-acutes_28d_panel %>% 
   group_by(casesCode) %>% 
-  filter(min(totCases)>=40)
+  filter(min(totCases)>=30)
 
 acutes_28d_panel<-group_by(acutes_28d_panel,dr) %>% 
   mutate(rank=order(order(percHAI,decreasing=TRUE)))
