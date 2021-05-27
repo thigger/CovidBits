@@ -49,9 +49,14 @@ MSOAFemales <- read_excel("SAPE22DT15-mid-2019-msoa-quinary-estimates-unformatte
                         sheet = "Mid-2019 Females", skip = 3)
 
 MSOAMales<-MSOAMales %>% 
-  mutate(TotalOver60s = select(.,`60-64`:`90+`) %>% rowSums())
+  mutate(TotalOver60s = select(.,`60-64`:`90+`) %>% rowSums()) %>% 
+  mutate(TotalOver50s = select(.,`50-54`:`90+`) %>% rowSums()) %>% 
+  mutate(TotalOver40s = select(.,`40-44`:`90+`) %>% rowSums())
+
 MSOAFemales<-MSOAFemales %>% 
-  mutate(TotalOver60s = select(.,`60-64`:`90+`) %>% rowSums())
+  mutate(TotalOver60s = select(.,`60-64`:`90+`) %>% rowSums()) %>% 
+  mutate(TotalOver50s = select(.,`50-54`:`90+`) %>% rowSums()) %>% 
+  mutate(TotalOver40s = select(.,`40-44`:`90+`) %>% rowSums())
 
 ## Background death data
 # https://www.nomisweb.co.uk/query/construct/submit.asp?forward=yes&menuopt=201&subcomp=
@@ -61,16 +66,21 @@ MSOAFemales<-MSOAFemales %>%
 #  https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-vaccinations/
 ## nb may need changing if new columns added
 
-COVID_19_weekly_announced_vaccinations <- read_excel("COVID-19-weekly-announced-vaccinations-11-March-2021.xlsx", 
+COVID_19_weekly_announced_vaccinations <- read_excel("COVID-19-weekly-announced-vaccinations-20-May-2021.xlsx", 
                                                                    sheet = "MSOA", skip = 12)
+COVID_19_weekly_announced_vaccinations_old <- read_excel("COVID-19-weekly-announced-vaccinations-25-March-2021.xlsx", 
+                                                     sheet = "MSOA", skip = 12)
+#1st doses only
 COVID_19_weekly_announced_vaccinations<-COVID_19_weekly_announced_vaccinations %>% 
-  mutate(TotalVaccines=select(.,`Under 60`:`80+`) %>% rowSums()) %>% 
-  mutate(Over60Vaccines=select(.,`60-64`:`80+`) %>% rowSums()) 
+  mutate(TotalVaccines=select(.,`Under 40...7`:`80+...16`) %>% rowSums()) %>% 
+  mutate(Over60Vaccines=select(.,`60-64...12`:`80+...16`) %>% rowSums()) %>% 
+  mutate(Over50Vaccines=select(.,`50-54...10`:`80+...16`) %>% rowSums()) %>% 
+  mutate(Over40Vaccines=select(.,`40-44...8`:`80+...16`) %>% rowSums())
 
 
 
 ## Calculate expected deaths by MSOA for indirect standardisation
-
+5
 MSOAmortMales<-MSOAMales
 MSOAmortFemales<-MSOAFemales
 
@@ -103,14 +113,15 @@ MSOAmortTotal<-left_join(MSOAmortFemales,MSOAmortMales,by="MSOA Code")
 MSOAmortTotal$CombinedExpectedDeaths<-MSOAmortTotal$TotalDeaths.x+MSOAmortTotal$TotalDeaths.y
 MSOAmortTotal$CombinedPopulation<-MSOAmortTotal$`All Ages.x`+MSOAmortTotal$`All Ages.y`
 MSOAmortTotal$CombinedOver60s<-MSOAmortTotal$TotalOver60s.x+MSOAmortTotal$TotalOver60s.y
-
+MSOAmortTotal$CombinedOver50s<-MSOAmortTotal$TotalOver50s.x+MSOAmortTotal$TotalOver50s.y
+MSOAmortTotal$CombinedOver40s<-MSOAmortTotal$TotalOver40s.x+MSOAmortTotal$TotalOver40s.y
 
 ## indirect standardisation
 
 
 MSOACombinedDeathsCovid<-left_join(MSOAmortTotal,msoadeaths,by=c("MSOA Code"="msoa_code"))
 
-MSOAOEDataSet<-MSOACombinedDeathsCovid %>% select("MSOA Code","LA Code (2020 boundaries).x","LA name (2020 boundaries).x","msoa_name_hcl","CombinedExpectedDeaths","CovidTotalDeaths","CombinedPopulation","CombinedOver60s")
+MSOAOEDataSet<-MSOACombinedDeathsCovid %>% select("MSOA Code","LA Code (2020 boundaries).x","LA name (2020 boundaries).x","msoa_name_hcl","CombinedExpectedDeaths","CovidTotalDeaths","CombinedPopulation","CombinedOver60s","CombinedOver50s","CombinedOver40s")
 
 # SMR mortality - scale expected down to national proportion of COVID-19 deaths
 MSOAOEDataSet$SMRCovid<-MSOAOEDataSet$CovidTotalDeaths/MSOAOEDataSet$CombinedExpectedDeaths*100
@@ -121,13 +132,13 @@ MSOAOEDataSet$RawMortCovid<-MSOAOEDataSet$CovidTotalDeaths/MSOAOEDataSet$Combine
 
 
 
-MSOAVaccinesTotal<-select(COVID_19_weekly_announced_vaccinations,"...5","TotalVaccines","Over60Vaccines")
+MSOAVaccinesTotal<-select(COVID_19_weekly_announced_vaccinations,"...5","TotalVaccines","Over60Vaccines","Over50Vaccines","Over40Vaccines")
 
 MSOAOverall<-inner_join(MSOAOEDataSet,MSOAVaccinesTotal,by=c("MSOA Code"="...5"))
 MSOAOverall$VaccinatedPercent<-MSOAOverall$TotalVaccines/MSOAOverall$CombinedPopulation
 MSOAOverall$VaccinatedOver60Percent<-MSOAOverall$Over60Vaccines/MSOAOverall$CombinedOver60s
-
-
+MSOAOverall$VaccinatedOver50Percent<-MSOAOverall$Over50Vaccines/MSOAOverall$CombinedOver50s
+MSOAOverall$VaccinatedOver40Percent<-MSOAOverall$Over40Vaccines/MSOAOverall$CombinedOver40s
 
 ## Load shapefile
 library(sf)
@@ -143,6 +154,7 @@ data_poly<-merge(msoa_poly,MSOAOverall,by.x="msoa11cd",by.y="MSOA Code",all.x=FA
 
 
 library(leaflet)
+
 library(scales)
 library(RColorBrewer)
 library(htmlwidgets)
@@ -168,6 +180,28 @@ Vacc60Pal_labs<-paste(lag(Vacc60Pal_labs),Vacc60Pal_labs,sep=" - ")[-1]
 Vacc60Pal_labs[[1]]<-paste0("<",first)
 Vacc60Pal_labs[[Vacc60_n]]<-paste0(">",last)
 
+Vacc50_n<-10
+Vacc50Pal<-colorQuantile(colorRampPalette(brewer.pal(9,"YlOrRd"))(Vacc50_n), n=Vacc50_n, domain=data_poly$VaccinatedOver50Percent)
+Vacc50Pal_cols<-unique(Vacc50Pal(sort(data_poly$VaccinatedOver50Percent)))
+Vacc50Pal_labs<-percent(quantile(data_poly$VaccinatedOver50Percent,seq(0,1,1/Vacc50_n)),accuracy=1)
+first<-Vacc50Pal_labs[[2]]
+last<-Vacc50Pal_labs[[Vacc50_n]]
+Vacc50Pal_labs<-paste(lag(Vacc50Pal_labs),Vacc50Pal_labs,sep=" - ")[-1]
+Vacc50Pal_labs[[1]]<-paste0("<",first)
+Vacc50Pal_labs[[Vacc50_n]]<-paste0(">",last)
+
+Vacc40_n<-10
+Vacc40Pal<-colorQuantile(colorRampPalette(brewer.pal(9,"YlOrRd"))(Vacc40_n), n=Vacc40_n, domain=data_poly$VaccinatedOver40Percent)
+Vacc40Pal_cols<-unique(Vacc40Pal(sort(data_poly$VaccinatedOver40Percent)))
+Vacc40Pal_labs<-percent(quantile(data_poly$VaccinatedOver40Percent,seq(0,1,1/Vacc40_n)),accuracy=1)
+first<-Vacc40Pal_labs[[2]]
+last<-Vacc40Pal_labs[[Vacc40_n]]
+Vacc40Pal_labs<-paste(lag(Vacc40Pal_labs),Vacc40Pal_labs,sep=" - ")[-1]
+Vacc40Pal_labs[[1]]<-paste0("<",first)
+Vacc40Pal_labs[[Vacc40_n]]<-paste0(">",last)
+
+
+
 SMR_n<-10
 SMRPal<-colorQuantile(colorRampPalette(brewer.pal(9,"YlOrRd"))(SMR_n), n=SMR_n, domain=data_poly$SMRCovid)
 SMRPal_cols<-unique(SMRPal(sort(data_poly$SMRCovid)))
@@ -189,7 +223,9 @@ library(htmltools)
 data_poly <- data_poly %>% 
   mutate(Label=paste0("<b>",msoa_name_hcl,"</b><br/>",
                            percent(VaccinatedPercent,accuracy=1)," Vaccinated Total<br/>",
-                           percent(VaccinatedOver60Percent,accuracy=1)," Vaccinated of Over 60s<br/>",
+           #                percent(VaccinatedOver60Percent,accuracy=1)," Vaccinated of Over 60s<br/>",
+                          percent(VaccinatedOver50Percent,accuracy=1)," Vaccinated of Over 50s<br/>",
+                     percent(VaccinatedOver40Percent,accuracy=1)," Vaccinated of Over 40s<br/>",
                            signif(SMRCovid,digits=3)," COVID-19 Standardised Mortality Rate<br/>",
                            signif(RawMortCovid,digits=3)," COVID-19 mortality per 100,000"
     
@@ -225,16 +261,32 @@ obs_map<-obs_map %>% addPolygons(color = "black",
               fillColor = ~MortPal(RawMortCovid),
               group="Mortality (Raw)",label=~HTMLLabel
   ) %>%
+  # addPolygons(color = "black",
+  #             weight = 1,
+  #             smoothFactor = 0.5,
+  #             opacity = 0.1,
+  #             fillOpacity = 0.5,
+  #             fillColor = ~Vacc60Pal(VaccinatedOver60Percent),
+  #             group="Proportion >60 Vaccinated",label=~HTMLLabel
+  # ) %>%
   addPolygons(color = "black",
               weight = 1,
               smoothFactor = 0.5,
               opacity = 0.1,
               fillOpacity = 0.5,
-              fillColor = ~Vacc60Pal(VaccinatedOver60Percent),
-              group="Proportion >60 Vaccinated",label=~HTMLLabel
+              fillColor = ~Vacc50Pal(VaccinatedOver50Percent),
+              group="Proportion >50 Vaccinated",label=~HTMLLabel
+  ) %>%
+  addPolygons(color = "black",
+              weight = 1,
+              smoothFactor = 0.5,
+              opacity = 0.1,
+              fillOpacity = 0.5,
+              fillColor = ~Vacc40Pal(VaccinatedOver40Percent),
+              group="Proportion >40 Vaccinated",label=~HTMLLabel
   ) %>%
   addLayersControl(
-    baseGroups=c("Proportion Vaccinated","Proportion >60 Vaccinated","Mortality (SMR)","Mortality (Raw)"),
+    baseGroups=c("Proportion Vaccinated","Proportion >50 Vaccinated","Proportion >40 Vaccinated","Mortality (SMR)","Mortality (Raw)"),
     options = layersControlOptions(collapsed = FALSE)
   ) %>% 
   addLegend(
@@ -258,12 +310,26 @@ obs_map<-obs_map %>% addPolygons(color = "black",
     group="Mortality (Raw)",
     className="info legend Mortality(Raw)"
   ) %>%
+  # addLegend(
+  #   "bottomright",colors=Vacc60Pal_cols,labels=Vacc60Pal_labs,
+  #   title="Percent >60 Vaccinated",
+  #   #labFormat=labelFormat(""),
+  #   group="Proportion >60 Vaccinated",
+  #   className="info legend Proportion60Vaccinated"
+  # ) %>%
   addLegend(
-    "bottomright",colors=Vacc60Pal_cols,labels=Vacc60Pal_labs,
-    title="Percent >60 Vaccinated",
+    "bottomright",colors=Vacc50Pal_cols,labels=Vacc50Pal_labs,
+    title="Percent >50 Vaccinated",
     #labFormat=labelFormat(""),
-    group="Proportion >60 Vaccinated",
-    className="info legend Proportion60Vaccinated"
+    group="Proportion >50 Vaccinated",
+    className="info legend Proportion50Vaccinated"
+  ) %>%
+  addLegend(
+    "bottomright",colors=Vacc40Pal_cols,labels=Vacc40Pal_labs,
+    title="Percent >40 Vaccinated",
+    #labFormat=labelFormat(""),
+    group="Proportion >40 Vaccinated",
+    className="info legend Proportion40Vaccinated"
   ) %>%
 htmlwidgets::onRender("
       function(el, x) {
@@ -281,9 +347,9 @@ htmlwidgets::onRender("
       }"
 )
 
+#saveWidget(obs_map,file="C:/Users/cliche/Desktop/tmp/VaccMapSimp20May.html",selfcontained = TRUE)
+
 #saveWidget(obs_map,file="C:/Users/cliche/Desktop/tmp/VaccMapFull.html",selfcontained = TRUE)
-
-
 
 
 
