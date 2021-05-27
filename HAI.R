@@ -5,7 +5,7 @@ library(plotly)
 
 ##Data from: https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-hospital-activity/
 
-filename<-"Weekly-covid-admissions-and-beds-publication-210311.xlsx"
+filename<-"Weekly-covid-admissions-and-beds-publication-210429-up-to-210406.xlsx"
 
 cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
 new_hosp_cases_wide<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
@@ -13,6 +13,19 @@ new_hosp_cases_wide<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,
 cnames<-paste0("ads",read_excel(filename,sheet="Hosp ads from comm",n_max=0,skip=14) %>% names())
 hosp_comm_ads_wide<-na.omit(read_excel(filename,sheet="Hosp ads from comm",skip=24,col_names=cnames))
 
+
+filename<-"Weekly-covid-admissions-and-beds-publication-210429.xlsx"
+
+cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
+new_hosp_cases_wide2<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
+
+cnames<-paste0("ads",read_excel(filename,sheet="Hosp ads from comm",n_max=0,skip=14) %>% names())
+hosp_comm_ads_wide2<-na.omit(read_excel(filename,sheet="Hosp ads from comm",skip=24,col_names=cnames))
+
+
+
+new_hosp_cases_wide<-merge(new_hosp_cases_wide,new_hosp_cases_wide2)
+hosp_comm_ads_wide<-merge(hosp_comm_ads_wide,hosp_comm_ads_wide2)
 
 
 #t1<-new_hosp_cases_wide[new_hosp_cases_wide$casesCode=="RYR",]
@@ -197,6 +210,17 @@ overall_long$date<-as.Date(overall_long$date,origin="1899-12-30")
 tcases<-sum(overall_long$cases)
 thai<-sum(overall_long$hai)
 print(paste0("Total HAI: ",thai,"/",tcases," (",thai/tcases,"%)"))
+
+
+pc<-data.frame(group=c("Hospital Acquired","Community Acquired"),value=c(thai,tcases-thai))
+
+ggplot(pc,aes(x="",y=value,fill=group))+geom_bar(width=1,stat="identity")+coord_polar("y",start=0)+
+  #scale_fill_manual(values=c("darkblue","darkred"))+
+  scale_fill_manual(values=c("skyblue4","tomato4"))+
+  theme_minimal()+
+  xlab("")+
+  ylab("")
+
 
 #Dates are inclusive
 #start_date<-as.Date("2020-12-20")
@@ -420,7 +444,7 @@ acutes_28d_panel$dr<-factor(c('Previous 28d','Most recent 28d')[acutes_28d_panel
 
 acutes_28d_panel$percHAI<-acutes_28d_panel$totHAI/acutes_28d_panel$totCases
 
-# remove trusts where cases in either period below 30
+# remove trusts where cases in either period below 20
 acutes_28d_panel<-acutes_28d_panel %>% 
   group_by(casesCode) %>% 
   filter(min(totCases)>=30)
@@ -476,3 +500,22 @@ bigchart<-newggrankslopegraph(
 )
 
 print(bigchart)
+
+
+
+##
+## longest run
+
+trusts<-unique(acutes$casesCode)
+d2<-data.frame(matrix(NA,ncol=2,nrow=length(trusts)))
+names(d2)<-c("trustcode","longest_zero")
+d2$trustcode<-trusts
+for (i in trusts) {
+  d2$trustName[d2$trustcode==i]<-acutes$casesName[acutes$casesCode==i][1]
+  if (0 %in% acutes$hai[acutes$casesCode==i]) {
+    run<-rle(acutes$hai[acutes$casesCode==i])
+    d2$longest_zero[d2$trustcode==i]<-max(run$length[run$values==0])
+  } else{
+    d2$longest_zero[d2$trustcode==i]<-0
+  }
+}
