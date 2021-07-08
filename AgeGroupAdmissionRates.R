@@ -2,7 +2,8 @@ library(readxl)
 library(tidyr)
 
 ##https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-hospital-activity/
-filename<-"Covid-Publication-10-06-2021-Supplementary-Data.xlsx"
+#filename<-"Covid-Publication-10-06-2021-Supplementary-Data.xlsx"
+filename<-"Covid-Publication-08-07-2021-Supplementary-Data.xlsx"
 
 cnames<-paste0("",read_excel(filename,sheet="Admissions and Diagnoses",n_max=0,skip=12) %>% names())
 #cnames<-c("MSOA code","MSOA Name ONS","MSOA Name HCL","blank",cnames)
@@ -46,7 +47,7 @@ combined<-merge(comm_cases,hosp_data,by.x="date",by.y="DateOff")
 
 library(runner)
 
-rsum<-30
+rsum<-14
 
 
 combined<-mutate(combined,
