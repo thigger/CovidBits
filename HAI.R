@@ -14,7 +14,7 @@ cnames<-paste0("ads",read_excel(filename,sheet="Hosp ads from comm",n_max=0,skip
 hosp_comm_ads_wide<-na.omit(read_excel(filename,sheet="Hosp ads from comm",skip=24,col_names=cnames))
 
 
-filename<-"Weekly-covid-admissions-and-beds-publication-210429.xlsx"
+filename<-"Weekly-covid-admissions-and-beds-publication-210722.xlsx"
 
 cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
 new_hosp_cases_wide2<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
@@ -234,21 +234,25 @@ print(paste0("Specified dates - total HAI: ",thai,"/",tcases," (",thai/tcases,"%
 
 maxdate<-max(acutes$date)
 
-tlim_overall_long<-overall_long[overall_long$date<=maxdate & overall_long$date>=(maxdate-28),]
+n_days<-60
+
+tlim_overall_long<-overall_long[overall_long$date<=maxdate & overall_long$date>=(maxdate-n_days),]
 tcases<-sum(tlim_overall_long$cases)
 thai<-sum(tlim_overall_long$hai)
-print(paste0("Most recent 28 days - total HAI: ",thai,"/",tcases," (",thai/tcases,"%)"))
+print(paste0("Most recent ",n_days," days - total HAI: ",thai,"/",tcases," (",thai/tcases,"%)"))
 
 
 
 
-## Charts for 28 days
+## Charts for 28 or n days
+
+n_days<-60
 
 maxdate<-max(acutes$date)
 
 #maxdate<-as.Date("2020-09-30")
 
-acutes_28d<-acutes[acutes$date>=maxdate-28 & acutes$date<=maxdate,]
+acutes_28d<-acutes[acutes$date>=maxdate-n_days & acutes$date<=maxdate,]
 
 acutes_28d_grp<-acutes_28d %>% 
   group_by(casesCode,casesName) %>% 
@@ -269,7 +273,7 @@ ggplot(acutes_28d_grp_lim,aes(y=fct_reorder(casesName,percHAI),x=percHAI,fill=pe
   scale_x_continuous(labels=scales::percent,expand=expansion(mult=c(0.00,0.02))) +
   ylab("Trust (and total cases)") +
   geom_text(aes(label=totCases),x=0.002,size=3,show.legend=FALSE,hjust=0) +
-  ggtitle(paste0("Hospital Acquired COVID-19 last 28 days (to ",lastdate,")")) +
+  ggtitle(paste0("Hospital Acquired COVID-19 last ",n_days," days (to ",lastdate,")")) +
   theme(plot.title.position='plot',plot.title=element_text(hjust=0.5))
 
 
