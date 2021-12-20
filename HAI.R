@@ -14,8 +14,8 @@ cnames<-paste0("ads",read_excel(filename,sheet="Hosp ads from comm",n_max=0,skip
 hosp_comm_ads_wide<-na.omit(read_excel(filename,sheet="Hosp ads from comm",skip=24,col_names=cnames))
 
 
-filename<-"Weekly-covid-admissions-and-beds-publication-210722.xlsx"
 
+filename<-"Weekly-covid-admissions-and-beds-publication-211209-210407-210930.xlsx"
 cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
 new_hosp_cases_wide2<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
 
@@ -24,8 +24,22 @@ hosp_comm_ads_wide2<-na.omit(read_excel(filename,sheet="Hosp ads from comm",skip
 
 
 
+
+filename<-"Weekly-covid-admissions-and-beds-publication-211216.xlsx"
+
+cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
+new_hosp_cases_wide3<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
+
+cnames<-paste0("ads",read_excel(filename,sheet="Hosp ads from comm",n_max=0,skip=14) %>% names())
+hosp_comm_ads_wide3<-na.omit(read_excel(filename,sheet="Hosp ads from comm",skip=24,col_names=cnames))
+
+
+
 new_hosp_cases_wide<-merge(new_hosp_cases_wide,new_hosp_cases_wide2)
+new_hosp_cases_wide<-merge(new_hosp_cases_wide,new_hosp_cases_wide3)
+
 hosp_comm_ads_wide<-merge(hosp_comm_ads_wide,hosp_comm_ads_wide2)
+hosp_comm_ads_wide<-merge(hosp_comm_ads_wide,hosp_comm_ads_wide3)
 
 
 #t1<-new_hosp_cases_wide[new_hosp_cases_wide$casesCode=="RYR",]
@@ -224,8 +238,8 @@ ggplot(pc,aes(x="",y=value,fill=group))+geom_bar(width=1,stat="identity")+coord_
 
 #Dates are inclusive
 #start_date<-as.Date("2020-12-20")
-start_date<-as.Date("2021-01-11")
-fin_date<-as.Date("2021-01-17")
+start_date<-as.Date("2020-08-01")
+fin_date<-as.Date("2021-05-01")
 
 tlim_overall_long<-overall_long[overall_long$date<=fin_date & overall_long$date>=start_date,]
 tcases<-sum(tlim_overall_long$cases)
@@ -234,7 +248,7 @@ print(paste0("Specified dates - total HAI: ",thai,"/",tcases," (",thai/tcases,"%
 
 maxdate<-max(acutes$date)
 
-n_days<-60
+n_days<-28
 
 tlim_overall_long<-overall_long[overall_long$date<=maxdate & overall_long$date>=(maxdate-n_days),]
 tcases<-sum(tlim_overall_long$cases)
@@ -246,7 +260,7 @@ print(paste0("Most recent ",n_days," days - total HAI: ",thai,"/",tcases," (",th
 
 ## Charts for 28 or n days
 
-n_days<-60
+n_days<-28
 
 maxdate<-max(acutes$date)
 
@@ -275,6 +289,57 @@ ggplot(acutes_28d_grp_lim,aes(y=fct_reorder(casesName,percHAI),x=percHAI,fill=pe
   geom_text(aes(label=totCases),x=0.002,size=3,show.legend=FALSE,hjust=0) +
   ggtitle(paste0("Hospital Acquired COVID-19 last ",n_days," days (to ",lastdate,")")) +
   theme(plot.title.position='plot',plot.title=element_text(hjust=0.5))
+
+
+## By Wave
+
+acutes_alphawave<-acutes[acutes$date<as.Date("2021-05-01"),]
+acutes_deltawave<-acutes[acutes$date>=as.Date("2021-05-01"),]
+
+acutes_alpha_grp<-acutes_alphawave %>% 
+  group_by(casesCode,casesName) %>% 
+  summarize(totHAI=sum(hai),totCases=sum(cases))
+
+print(paste0("Alpha Wave: ",sum(acutes_alpha_grp$totHAI)," / ",sum(acutes_alpha_grp$totCases)," = ",sum(acutes_alpha_grp$totHAI)/sum(acutes_alpha_grp$totCases)*100,"%"))
+
+
+acutes_delta_grp<-acutes_deltawave %>% 
+  group_by(casesCode,casesName) %>% 
+  summarize(totHAI=sum(hai),totCases=sum(cases))
+
+print(paste0("Delta Wave: ",sum(acutes_delta_grp$totHAI)," / ",sum(acutes_delta_grp$totCases)," = ",sum(acutes_delta_grp$totHAI)/sum(acutes_delta_grp$totCases)*100,"%"))
+
+
+
+acutes_alpha_grp$percHAI<-acutes_alpha_grp$totHAI/acutes_alpha_grp$totCases
+acutes_delta_grp$percHAI<-acutes_delta_grp$totHAI/acutes_delta_grp$totCases
+
+acutes_alpha_grp<-acutes_alpha_grp[acutes_alpha_grp$totCases>200,]
+acutes_delta_grp<-acutes_delta_grp[acutes_delta_grp$totCases>140,]
+
+colour_lim_max<-max(acutes_alpha_grp$percHAI,acutes_delta_grp$percHAI)
+
+ggplot(acutes_alpha_grp,aes(y=fct_reorder(casesName,percHAI),x=percHAI,fill=percHAI))+
+  geom_col()+
+  scale_fill_distiller(palette="Spectral",guide=FALSE,limits=range(0,colour_lim_max))+
+  xlab("Percentage hospital acquired")+
+  scale_x_continuous(labels=scales::percent,expand=expansion(mult=c(0.00,0.02)),limits=c(0,colour_lim_max)) +
+  #scale_x_continuous(labels=scales::percent,limits=c(0,colour_lim_max)) +
+  ylab("Trust (and total cases)") +
+  geom_text(aes(label=totCases),x=0.002,size=3,show.legend=FALSE,hjust=0) +
+  ggtitle("Hospital Acquired COVID-19 Alpha Wave (Aug 2020 - May 2021)") +
+  theme(plot.title.position='plot',plot.title=element_text(hjust=0.5))
+
+ggplot(acutes_delta_grp,aes(y=fct_reorder(casesName,percHAI),x=percHAI,fill=percHAI))+
+  geom_col()+
+  scale_fill_distiller(palette="Spectral",guide=FALSE,limits=range(0,colour_lim_max))+
+  xlab("Percentage hospital acquired")+
+  scale_x_continuous(labels=scales::percent,expand=expansion(mult=c(0.00,0.02)),limits=c(0,colour_lim_max)) +
+  ylab("Trust (and total cases)") +
+  geom_text(aes(label=totCases),x=0.002,size=3,show.legend=FALSE,hjust=0) +
+  ggtitle(paste0("Hospital Acquired COVID-19 Delta Wave (May 2021 to ",max(acutes_deltawave$date),")")) +
+  theme(plot.title.position='plot',plot.title=element_text(hjust=0.5))
+
 
 
 
@@ -523,3 +588,68 @@ for (i in trusts) {
     d2$longest_zero[d2$trustcode==i]<-0
   }
 }
+
+
+## chart by month
+library(lubridate)
+acutes$month<-month(acutes$date)
+acutes$year<-year(acutes$date)
+
+acutes_TS_grp<-acutes %>% 
+  group_by(casesCode,casesName,year,month) %>% 
+  summarize(totHAI=sum(hai),totCases=sum(cases))
+
+acutes_TS_grp$percHAI<-acutes_TS_grp$totHAI/acutes_TS_grp$totCases
+
+
+## by day?
+acutes_TSD_grp<-acutes %>%
+  group_by(date) %>%
+  summarize(totHAI=sum(hai),totCases=sum(cases))
+acutes_TSD_grp$percHAI<-acutes_TSD_grp$totHAI/acutes_TSD_grp$totCases
+
+ggplot(acutes_TSD_grp,aes(x=date,y=percHAI))+
+  geom_smooth(span=0.3,size=2)+
+  geom_point(alpha=0.5)+
+  xlab("Date")+
+  ylab("Percentage HAI")+
+  ggtitle("Overall - Percentage HAI by day for English Acute Trusts combined")+
+  scale_y_continuous(labels=scales::percent)+
+  theme_minimal(base_size=18)
+
+ggplot(acutes_TSD_grp[acutes_TSD_grp$date>as.Date("2021-05-01"),],aes(x=date,y=percHAI))+
+  geom_smooth(span=1,size=2)+
+  geom_point(alpha=0.5)+
+  xlab("Date (2021)")+
+  ylab("Percentage HAI")+
+  ggtitle("Delta - Percentage HAI by day for English Acute Trusts combined")+
+  scale_y_continuous(labels=scales::percent)+
+  theme_minimal(base_size=18)
+
+
+## are cases related to community cases?
+
+library(lubridate)
+
+overall_long$rwdate<-round_date(overall_long$date,unit="month")
+overall_roundweek<-overall_long %>%
+  filter(`casesType 1 Acute?`=="Yes") %>%
+  group_by(casesCode,casesName,rwdate) %>%
+  summarise(ads=sum(ads),hai=sum(hai),cases=sum(cases)) %>%
+  mutate(perHAI=hai/cases)
+
+
+ggplot(overall_roundweek,aes(x=cases,y=hai))+
+  geom_point(alpha=0.3)+
+  xlab("Cases")+
+  ylab("Hospital acquired cases")+
+  ggtitle("Hospital acquired vs total cases (per month)")+
+  theme_minimal(base_size=18)
+
+ggplot(overall_roundweek,aes(x=cases,y=perHAI))+
+         geom_point(alpha=0.3)+
+xlab("Cases")+
+  ylab("Hospital acquired cases (percentage)")+
+  ggtitle("Percentage hospital acquired vs total cases (per month)")+
+  scale_y_continuous(labels=scales::percent)+
+theme_minimal(base_size=18)
