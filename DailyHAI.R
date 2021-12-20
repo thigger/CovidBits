@@ -47,11 +47,11 @@ test$Ddate<-as.Date(test$date,origin="1899-12-30")
 
 
 ggplot(test[test$casesName!="ENGLAND",],aes(x=Ddate,y=propNhai,colour=casesName))+
-         geom_smooth(se=FALSE,span=0.3,size=1)+
+         geom_smooth(se=FALSE,span=0.3,size=1.5)+
   theme_minimal(base_size=18)+
   xlab("Date")+
   ylab("Proportion HAI")+
   ggtitle("Hospital-acquired Covid proportion by region")+
   scale_y_continuous(labels = scales::percent_format(accuracy=1))+
-  scale_colour_discrete(name="Region")+
+  scale_colour_brewer(name="Region",palette="Dark2")+
   theme(legend.position="bottom",legend.text = element_text(size=10))
