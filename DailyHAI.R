@@ -5,7 +5,7 @@ library(plotly)
 
 ##Data from: https://www.england.nhs.uk/statistics/statistical-work-areas/covid-19-hospital-activity/
 
-filename<-"COVID-19-daily-admissions-and-beds-20211220.xlsx"
+filename<-"COVID-19-daily-admissions-and-beds-20220308.xlsx"
 
 cnames<-paste0("cases",read_excel(filename,sheet="Daily publication",n_max=0,skip=27) %>% names())
 new_hosp_cases_wide<-na.omit(read_excel(filename,sheet="Daily publication",skip=28,n_max=8,col_names=cnames))
@@ -26,7 +26,7 @@ overall_long$date<-strtoi(overall_long$date)
 
 
 
-sumDays<-1
+sumDays<-7
 
 test<-overall_long %>% 
   group_by(`casesName`) %>% 
@@ -47,11 +47,35 @@ test$Ddate<-as.Date(test$date,origin="1899-12-30")
 
 
 ggplot(test[test$casesName!="ENGLAND",],aes(x=Ddate,y=propNhai,colour=casesName))+
-         geom_smooth(se=FALSE,span=0.3,size=1.5)+
+         geom_smooth(se=FALSE,span=0.25,size=1.5)+
   theme_minimal(base_size=18)+
+  #geom_point()+
   xlab("Date")+
   ylab("Proportion HAI")+
   ggtitle("Hospital-acquired Covid proportion by region")+
   scale_y_continuous(labels = scales::percent_format(accuracy=1))+
   scale_colour_brewer(name="Region",palette="Dark2")+
   theme(legend.position="bottom",legend.text = element_text(size=10))
+
+
+
+ggplot(test[test$casesName!="ENGLAND",],aes(x=Ddate,y=cases,colour=casesName))+
+ # geom_smooth(se=FALSE,span=0.3,size=1.5)+
+  geom_line(size=1.5)+
+  theme_minimal(base_size=18)+
+  xlab("Date")+
+  ylab("New cases")+
+  ggtitle("New daily hospital cases of Covid-19 by region")+
+  scale_colour_brewer(name="Region",palette="Dark2")+
+  theme(legend.position="bottom",legend.text = element_text(size=10))
+
+
+ggplot(test[test$casesName!="ENGLAND",],aes(x=Ddate,y=admis,colour=casesName))+
+  geom_smooth(se=FALSE,span=0.3,size=1.5)+
+  theme_minimal(base_size=18)+
+  xlab("Date")+
+  ylab("New admissions")+
+  ggtitle("New daily admissions from the community of Covid-19 by region")+
+  scale_colour_brewer(name="Region",palette="Dark2")+
+  theme(legend.position="bottom",legend.text = element_text(size=10))
+
