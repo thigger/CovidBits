@@ -8,10 +8,18 @@ library(plotly)
 filename<-"Weekly-covid-admissions-and-beds-publication-210429-up-to-210406.xlsx"
 
 cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
-new_hosp_cases_wide<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
+new_hosp_cases_wide<-read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames)
+new_hosp_cases_wide<-new_hosp_cases_wide[!is.na(new_hosp_cases_wide$casesCode),]
+
 
 cnames<-paste0("ads",read_excel(filename,sheet="Hosp ads from comm",n_max=0,skip=14) %>% names())
-hosp_comm_ads_wide<-na.omit(read_excel(filename,sheet="Hosp ads from comm",skip=24,col_names=cnames))
+hosp_comm_ads_wide<-read_excel(filename,sheet="Hosp ads from comm",skip=24,col_names=cnames)
+hosp_comm_ads_wide<-hosp_comm_ads_wide[!is.na(hosp_comm_ads_wide$adsCode),]
+
+cnames<-paste0("noncovid",read_excel(filename,sheet="Adult G&A Bed Occupied NonCOVID",n_max=0,skip=14) %>% names())
+hosp_noncovid_wide<-read_excel(filename,sheet="Adult G&A Bed Occupied NonCOVID",skip=24,col_names=cnames)
+hosp_noncovid_wide<-hosp_noncovid_wide[!is.na(hosp_noncovid_wide$noncovidCode),]
+
 
 
 
@@ -19,13 +27,19 @@ filename<-"Weekly-covid-admissions-and-beds-publication-211209-210407-210930.xls
 cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
 new_hosp_cases_wide2<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
 
+cnames<-paste0("noncovid",read_excel(filename,sheet="Adult G&A Bed Occupied NonCOVID",n_max=0,skip=14) %>% names())
+hosp_noncovid_wide2<-read_excel(filename,sheet="Adult G&A Bed Occupied NonCOVID",skip=24,col_names=cnames)
+hosp_noncovid_wide2<-hosp_noncovid_wide2[!is.na(hosp_noncovid_wide2$noncovidCode),]
+
+
+
 cnames<-paste0("ads",read_excel(filename,sheet="Hosp ads from comm",n_max=0,skip=14) %>% names())
 hosp_comm_ads_wide2<-na.omit(read_excel(filename,sheet="Hosp ads from comm",skip=24,col_names=cnames))
 
 
 
 
-filename<-"Weekly-covid-admissions-and-beds-publication-211216.xlsx"
+filename<-"Weekly-covid-admissions-and-beds-publication-220324.xlsx"
 
 cnames<-paste0("cases",read_excel(filename,sheet="New hosp cases",n_max=0,skip=14) %>% names())
 new_hosp_cases_wide3<-na.omit(read_excel(filename,sheet="New hosp cases",skip=24,col_names=cnames))
@@ -34,22 +48,29 @@ cnames<-paste0("ads",read_excel(filename,sheet="Hosp ads from comm",n_max=0,skip
 hosp_comm_ads_wide3<-na.omit(read_excel(filename,sheet="Hosp ads from comm",skip=24,col_names=cnames))
 
 
+cnames<-paste0("noncovid",read_excel(filename,sheet="Adult G&A Bed Occupied NonCOVID",n_max=0,skip=14) %>% names())
+hosp_noncovid_wide3<-read_excel(filename,sheet="Adult G&A Bed Occupied NonCOVID",skip=24,col_names=cnames)
+hosp_noncovid_wide3<-hosp_noncovid_wide3[!is.na(hosp_noncovid_wide3$noncovidCode),]
 
-new_hosp_cases_wide<-merge(new_hosp_cases_wide,new_hosp_cases_wide2)
-new_hosp_cases_wide<-merge(new_hosp_cases_wide,new_hosp_cases_wide3)
 
-hosp_comm_ads_wide<-merge(hosp_comm_ads_wide,hosp_comm_ads_wide2)
-hosp_comm_ads_wide<-merge(hosp_comm_ads_wide,hosp_comm_ads_wide3)
+new_hosp_cases_wide<-merge(new_hosp_cases_wide,new_hosp_cases_wide2,by="casesCode")
+new_hosp_cases_wide<-merge(new_hosp_cases_wide,new_hosp_cases_wide3,by="casesCode")
 
+hosp_comm_ads_wide<-merge(hosp_comm_ads_wide,hosp_comm_ads_wide2,by="adsCode")
+hosp_comm_ads_wide<-merge(hosp_comm_ads_wide,hosp_comm_ads_wide3,by="adsCode")
+
+
+hosp_noncovid_wide<-merge(hosp_noncovid_wide,hosp_noncovid_wide2,by="noncovidCode")
+hosp_noncovid_wide<-merge(hosp_noncovid_wide,hosp_noncovid_wide3,by="noncovidCode")
 
 #t1<-new_hosp_cases_wide[new_hosp_cases_wide$casesCode=="RYR",]
 
 #t2<-hosp_comm_ads_wide[hosp_comm_ads_wide$adsCode=="RYR",]
 
 
-
 overall_wide<-na.omit(merge(new_hosp_cases_wide,hosp_comm_ads_wide,by.x="casesCode",by.y="adsCode"))
 
+overall_incnoncovid_wide<-merge(overall_wide,hosp_noncovid_wide,by.x="casesCode",by.y="noncovidCode")
 
 #t3<-overall_wide[overall_wide$casesCode=="RYR",]
 
@@ -65,6 +86,16 @@ overall_long<-gather(overall_wide,variable,value,matches("\\d\\d",perl=TRUE)) %>
 overall_long$hai<-overall_long$cases-overall_long$ads
 
 overall_long$date<-strtoi(overall_long$date)
+
+
+
+overall_incnoncovid_long<-gather(overall_incnoncovid_wide,variable,value,matches("\\d\\d",perl=TRUE)) %>% 
+  separate("variable",into=c("var","date"),sep=-5) %>% 
+  spread(var,value)
+
+overall_incnoncovid_long$hai<-overall_incnoncovid_long$cases-overall_incnoncovid_long$ads
+
+overall_incnoncovid_long$date<-strtoi(overall_incnoncovid_long$date)
 
 
 #t4<-overall_long[overall_long$casesCode=="RYR",]
@@ -94,6 +125,75 @@ acutes<-test[test$`casesType 1 Acute?`=="Yes",]
 acutes$date<-as.Date(acutes$date,origin="1899-12-30")
 
 
+
+## calculate 7-day risk for noncovid patients
+
+sumDays<-90
+
+test<-overall_incnoncovid_long %>% 
+  group_by(`casesCode`) %>% 
+  arrange(`date`) %>% 
+  mutate(
+    sumNads = sum_run(`ads`,sumDays,idx=date),
+    sumNcases = sum_run(`cases`,sumDays,idx=date),
+    sumNhai = sum_run(`hai`,sumDays,idx=date),
+    avNnoncovid = sum_run(`noncovid`,sumDays,idx=date)/sumDays
+  )
+test$sumNads[is.na(test$sumNads)]<-0
+test$sumNcases[is.na(test$sumNcases)]<-0
+test$sumNhai[is.na(test$sumNhai)]<-0
+test$risk7days<-test$sumNhai/test$avNnoncovid/(sumDays/7)
+test<-test[!is.na(test$risk7days),]
+test<-test[test$date<=max(test[!is.na(test$hai),'date']),]
+test<-test[test$`casesType 1 Acute?.x`=="Yes",]
+test<-test[test$avNnoncovid>100,]
+
+acutesRiskLast28days<-test[test$date==max(test$date,na.rm=TRUE),]
+
+acutesRiskPrev28days<-test[test$date==max(test$date,na.rm=TRUE)-28,]
+
+lastdate<-as.Date(max(test$date),origin="1899-12-30")
+
+ggplot(acutesRiskLast28days,aes(y=fct_reorder(casesName,risk7days),x=risk7days,fill=risk7days))+
+  geom_col()+
+  scale_fill_distiller(palette="Spectral",guide=FALSE)+
+  xlab(paste0("7-day percentage developing COVID-19"))+
+  scale_x_continuous(labels=scales::percent,expand=expansion(mult=c(0.00,0.02))) +
+  ylab("Trust") +
+  #geom_text(aes(label=totCases),x=0.002,size=3,show.legend=FALSE,hjust=0) +
+  ggtitle(paste0("7-day percentage developing Hospital Acquired COVID-19 over last ",sumDays," days (to ",lastdate,")")) +
+  theme(plot.title.position='plot',plot.title=element_text(hjust=0.5))
+
+
+
+ggplot(acutesRiskPrev28days,aes(y=fct_reorder(casesName,risk7days),x=risk7days,fill=risk7days))+
+  geom_col()+
+  scale_fill_distiller(palette="Spectral",guide=FALSE)+
+  xlab(paste0("7-day percentage catching COVID-19"))+
+  scale_x_continuous(labels=scales::percent,expand=expansion(mult=c(0.00,0.02))) +
+  ylab("Trust") +
+  #geom_text(aes(label=totCases),x=0.002,size=3,show.legend=FALSE,hjust=0) +
+  ggtitle(paste0("7-day risk of Hospital Acquired COVID-19 previous ",sumDays," days (to ",lastdate-28,")")) +
+  theme(plot.title.position='plot',plot.title=element_text(hjust=0.5))
+
+
+acutesRisk28daysRatio<-merge(acutesRiskLast28days,acutesRiskPrev28days,by="casesCode")
+acutesRisk28daysRatio$ratio<-acutesRisk28daysRatio$risk7days.x/acutesRisk28daysRatio$risk7days.y
+
+
+ggplot(acutesRisk28daysRatio,aes(y=fct_reorder(casesName.x,ratio),x=ratio,fill=ratio))+
+  geom_col()+
+  scale_fill_distiller(palette="Spectral",guide=FALSE)+
+  xlab(paste0("HAI risk ratio to previous 28 days"))+
+  scale_x_continuous(labels=scales::percent,expand=expansion(mult=c(0.00,0.02))) +
+  ylab("Trust") +
+  #geom_text(aes(label=totCases),x=0.002,size=3,show.legend=FALSE,hjust=0) +
+  ggtitle(paste0("Ratio of last ",sumDays," days to previous ",sumDays," days (to ",lastdate,")")) +
+  theme(plot.title.position='plot',plot.title=element_text(hjust=0.5))+
+  scale_x_continuous(trans='log2')
+
+
+## acutes plot
 
 ggplot(acutes,aes(x=date,y=fct_reorder(casesName,propNhai),fill=propNhai))+
   geom_raster(show.legend=FALSE)+
@@ -239,7 +339,7 @@ ggplot(pc,aes(x="",y=value,fill=group))+geom_bar(width=1,stat="identity")+coord_
 #Dates are inclusive
 #start_date<-as.Date("2020-12-20")
 start_date<-as.Date("2020-08-01")
-fin_date<-as.Date("2021-05-01")
+fin_date<-as.Date("2021-11-01")
 
 tlim_overall_long<-overall_long[overall_long$date<=fin_date & overall_long$date>=start_date,]
 tcases<-sum(tlim_overall_long$cases)
@@ -260,13 +360,16 @@ print(paste0("Most recent ",n_days," days - total HAI: ",thai,"/",tcases," (",th
 
 ## Charts for 28 or n days
 
-n_days<-28
+n_days<-90
 
 maxdate<-max(acutes$date)
 
 #maxdate<-as.Date("2020-09-30")
 
 acutes_28d<-acutes[acutes$date>=maxdate-n_days & acutes$date<=maxdate,]
+
+#hull<-acutes_28d[acutes_28d$casesCode=="RWA",]
+#write.csv(hull,file="20220109 Hull.csv")
 
 acutes_28d_grp<-acutes_28d %>% 
   group_by(casesCode,casesName) %>% 
@@ -275,7 +378,7 @@ acutes_28d_grp<-acutes_28d %>%
 acutes_28d_grp$percHAI<-acutes_28d_grp$totHAI/acutes_28d_grp$totCases
 
 #remove smaller hospitals
-acutes_28d_grp_lim<-acutes_28d_grp[acutes_28d_grp$totCases>20,]
+acutes_28d_grp_lim<-acutes_28d_grp[acutes_28d_grp$totCases>142,]
 
 lastdate<-max(acutes_28d$date)
 firstdate<-min(acutes_28d$date)
@@ -618,11 +721,11 @@ ggplot(acutes_TSD_grp,aes(x=date,y=percHAI))+
   theme_minimal(base_size=18)
 
 ggplot(acutes_TSD_grp[acutes_TSD_grp$date>as.Date("2021-05-01"),],aes(x=date,y=percHAI))+
-  geom_smooth(span=1,size=2)+
+  geom_smooth(span=0.5,size=2)+
   geom_point(alpha=0.5)+
-  xlab("Date (2021)")+
+  xlab("Date (2021-2)")+
   ylab("Percentage HAI")+
-  ggtitle("Delta - Percentage HAI by day for English Acute Trusts combined")+
+  ggtitle("Percentage HAI by day for English Acute Trusts combined")+
   scale_y_continuous(labels=scales::percent)+
   theme_minimal(base_size=18)
 
